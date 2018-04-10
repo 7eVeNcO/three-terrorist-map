@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Data Visualisation - Koren</title>
+	<style>
+		body { margin: 0; overflow: hidden; background-color: #000; }
+		.tm  { position: absolute; top: 10px; right: 10px; }
+		.webgl-error { font: 15px/30px monospace; text-align: center; color: #fff; margin: 50px; }
+		.webgl-error a { color: #fff; }
+		#infobox {
+			position: absolute;
+			top: 5%;
+			background-color: white;
+			left: 5%;
+			border: 2px solid #3252ff;
+		}
+		#detail-top {
+			background-color: black;
+			color: white;
+			padding-left: 5px;
+			padding-top: 5px;
+		}
+		#detail-header {
+			padding: 10px;
+			cursor: move;
+			z-index: 10;
+			background-color: #f1f3f3;
+			color: #312818;
+		}
+		#close{
+			float: right;
+			padding-right: 3px;
+			padding-bottom: 3px;
+		}
+    </style>
+</head>
+<body>
+	<div id="webgl"></div>
+	<div id='infobox'>
+		<div id="detail-header">Attack detail <button id="close">Close</button></div>
+
+		<div id="detail-top"></div>
+		<div id="detail"></div>
+
+	</div>
+
+	<script>
+        //Make the DIV element draggagle:
+        dragElement(document.getElementById(("infobox")));
+
+        function dragElement(elmnt) {
+            var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            if (document.getElementById(elmnt.id + "header")) {
+                /* if present, the header is where you move the DIV from:*/
+                document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+            } else {
+                /* otherwise, move the DIV from anywhere inside the DIV:*/
+                elmnt.onmousedown = dragMouseDown;
+            }
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                // get the mouse cursor position at startup:
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                // call a function whenever the cursor moves:
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                // calculate the new cursor position:
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // set the element's new position:
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                /* stop moving when mouse button is released:*/
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+	</script>
+
+	<script src="js/three/three.min.js"></script>
+	<script src="js/Detector.js"></script>		
+	<script src="js/TrackballControls.js"></script>
+	<script src="js/dat.gui.min.js"></script>
+	<script src="js/jquery.min.js"></script>
+	<script src="js/jquery.csv.min.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<script src="js/earth.js"></script>
+</body>
+</html>
