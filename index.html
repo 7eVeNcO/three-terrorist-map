@@ -16,11 +16,37 @@
 			left: 5%;
 			border: 2px solid #3252ff;
 		}
+		#info-icon {
+			position: absolute;
+			top: 5%;
+			background-color: transparent;
+			left: 5%;
+		}
+		#info-window {
+			position: absolute;
+			top: 35%;
+			background-color: black;
+			left: 50%;
+			border: 2px solid #ffffff;
+			color: white;
+			padding-left: 5px;
+			padding-top: 5px;
+			padding-right: 5px;
+			display: none;
+		}
+		#info-header{
+			padding: 10px;
+			cursor: move;
+			z-index: 10;
+			background-color: #f1f3f3;
+			color: #312818;
+		}
 		#detail-top {
 			background-color: black;
 			color: white;
 			padding-left: 5px;
 			padding-top: 5px;
+			padding-right: 5px;
 		}
 		#detail-header {
 			padding: 10px;
@@ -29,17 +55,29 @@
 			background-color: #f1f3f3;
 			color: #312818;
 		}
-		#close{
+		.close{
 			float: right;
 			padding-right: 3px;
 			padding-bottom: 3px;
+		}
+		.foo {
+			width: 20px;
+			height: 20px;
+			margin: 5px;
+			border: 1px solid rgba(0, 0, 0, .2);
 		}
     </style>
 </head>
 <body>
 	<div id="webgl"></div>
+	<!--<div id="info-icon"> <img src="images/info3.svg" alt="Info" width="64" height="64"></div>-->
+	<!--<div id="info-window">-->
+		<!--<div id="info-header">Visualisation info <button class="close" id="info-close">Close</button></div>-->
+		<!--<div id="info-detail"></div>-->
+	<!--</div>-->
+
 	<div id='infobox'>
-		<div id="detail-header">Attack detail <button id="close">Close</button></div>
+		<div id="detail-header">Attack detail <button class="close" id="close">Close</button></div>
 
 		<div id="detail-top"></div>
 		<div id="detail"></div>
@@ -49,6 +87,7 @@
 	<script>
         //Make the DIV element draggagle:
         dragElement(document.getElementById(("infobox")));
+        // dragElement(document.getElementById(("info-window")));
 
         function dragElement(elmnt) {
             var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
@@ -97,6 +136,9 @@
 	<script src="js/jquery.min.js"></script>
 	<script src="js/jquery.csv.min.js"></script>
 	<script src="js/OrbitControls.js"></script>
+
+	<script src="js/fizzyPanel.js"></script>
 	<script src="js/earth.js"></script>
+
 </body>
 </html>

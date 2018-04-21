@@ -40,45 +40,6 @@
     var group = new THREE.Object3D();
     var groupDetail = new THREE.Object3D();
 
-    var FizzyText = function() {
-        this.year = 1970;
-        this.Bombing = "#2A478A";
-        this.Armed_Assault = "#792188";
-        this.Assasination = "#3DAC26";
-        this.Hostage_Taking = "#CFC02E";
-        this.Infrastructure_Attack = "#CF2E2E";
-        this.Other = "#CF682E";
-        this.fBombing = true;
-        this.fArmedAssault = true;
-        this.fAssasination = true;
-        this.fHostageTaking = true;
-        this.fInfrastructureAttack = true;
-        this.fOther = true;
-        this.display = "Fatalities"
-    };
-
-    var text = new FizzyText();
-    var gui = new dat.GUI();
-    var yearController = gui.add(text, 'year', 1970, 2015).name('Year');
-    var visualMapping = gui.addFolder("Visual mapping");
-    var filters = gui.addFolder("Filter");
-
-    var meshHeight = visualMapping.add( text, 'display', [ "Fatalities", "Injured", "Fatalities + Injured" ] ).name('Height reprezentation');
-
-    var colorBomb = visualMapping.addColor(text, 'Bombing').name('Bombing');
-    var colorAA = visualMapping.addColor(text, 'Armed_Assault').name('Armed Assault');
-    var colorAss = visualMapping.addColor(text, 'Assasination');
-    var colorHT = visualMapping.addColor(text, 'Hostage_Taking').name('Hostage Taking');
-    var colorIA = visualMapping.addColor(text, 'Infrastructure_Attack').name('Infrastructure');
-    var colorOther = visualMapping.addColor(text, 'Other');
-
-    var fBombing= filters.add( text, 'fBombing' ).name('Bombing');
-    var fArmedAssault= filters.add( text, 'fArmedAssault' ).name('Armed Assault');
-    var fAssasination= filters.add( text, 'fAssasination' ).name('Assasination');
-    var fHostageTaking= filters.add( text, 'fHostageTaking' ).name('Hostage Taking');
-    var fInfrastructureAttack= filters.add( text, 'fInfrastructureAttack' ).name('Infrastructure Attack');
-    var fOther= filters.add( text, 'fOther' ).name('Other');
-
     setControllers();
 
     /**
@@ -118,7 +79,6 @@
 	function render() {
         controls.update();
 
-        //TODO otestuj poziciu kamery
 		requestAnimationFrame(render);
         renderer.clear();
 		renderer.render(scene, camera);
@@ -149,7 +109,10 @@
             var heightDetail = 150 * (metrics[i] / metrics.max);
 
             var geometry = new THREE.BoxGeometry( 10, heightDetail, 1 );
-            var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+            if(i!=Math.round(text.year))
+                var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+            else
+                var material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
             var cube = new THREE.Mesh( geometry, material );
             cube.position.x = (0 - detailWidth/2) + shift;
             cube.position.y = (0 - detailHeight/2) + 20 + heightDetail/2;
@@ -306,7 +269,6 @@
     function displayData(){
         displayDataByCountryGrouped(Math.round(text.year));
         // displayDataByCity(year);
-        // displayAllData(year);
     }
 
     function displayDataByCity(year){
@@ -374,6 +336,7 @@
 
                 var record = dataset[i];
 
+                // Zaznam o state neexistuje
                 if( displayable[dataset[i].country] === undefined ) {
 
                     var Object = {};
@@ -396,10 +359,12 @@
 
                     displayable[dataset[i].country] = Object;
                 }
+                //Zaznam o state existuje
                 else {
                     displayable[record.country].grouped+= 1;
                     displayable[record.country][display]+= getDisplayValue(record);
 
+                    //Typ utoku sa este nevyskytol
                     if(displayable[dataset[i].country].attacks[dataset[i].attack_type] == undefined) {
                         displayable[dataset[i].country].attack_types+= 1;
                         displayable[dataset[i].country].attacks[dataset[i].attack_type] = {};
@@ -407,6 +372,7 @@
                         displayable[dataset[i].country].attacks[dataset[i].attack_type].grouped = 1;
 
                     }
+                    //Typ utoku sa uz vyskytol
                     else {
                         displayable[dataset[i].country].attacks[dataset[i].attack_type][display] += getDisplayValue(record);
                         displayable[dataset[i].country].attacks[dataset[i].attack_type].grouped +=  1;
@@ -424,24 +390,53 @@
 
         for (var country in displayable) {
             var length = 0;
-            for (var attackType in displayable[country].attacks) {
-                // var height = calculateMeshHeight(displayable[country].attacks[attackType].fatalities);
 
-                var height = calculateMeshHeight( displayable[country][display]);
-                height = (displayable[country].attacks[attackType][display] / displayable[country][display]) * height;
+            var attackTypes = ["Bombing/Explosion", "Armed Assault", "Assassination", "Hostage Taking (Kidnapping)", "Infrastructure", "Facility/Infrastructure Attack", "Other"];
 
-                mesh = createMesh(coefx*displayable[country].longitude, coefy*displayable[country].latitude + (length+height/2)*Math.sin(Math.PI / 4), (length+height/2)*Math.sin(Math.PI / 4), attackType, height, displayable[country].grouped);
 
-                length+=height;
-                var info = {};
-                info.country = country;
-                info[display] = displayable[country].attacks[attackType][display];
-                info.attack_type = attackType;
-                info.grouped = displayable[country].grouped;
-                info.total_fatalities = displayable[country][display];
-                mesh.userData = info;
-                group.add(mesh);
+            for (var i=0; i<attackTypes.length; i++) {
+
+                var attackType = attackTypes[i];
+                console.log(attackType);
+
+                if(displayable[country].attacks[attackType]!= undefined){
+
+                    var height = calculateMeshHeight( displayable[country][display]);
+                    height = (displayable[country].attacks[attackType][display] / displayable[country][display]) * height;
+
+                    mesh = createMesh(coefx*displayable[country].longitude, coefy*displayable[country].latitude + (length+height/2)*Math.sin(Math.PI / 4), (length+height/2)*Math.sin(Math.PI / 4), attackType, height, displayable[country].grouped);
+
+                    length+=height;
+                    var info = {};
+                    info.country = country;
+                    info[display] = displayable[country].attacks[attackType][display];
+                    info.attack_type = attackType;
+                    info.grouped = displayable[country].grouped;
+                    info.total_fatalities = displayable[country][display];
+                    mesh.userData = info;
+                    group.add(mesh);
+                }
             }
+
+
+
+            // for (var attackType in displayable[country].attacks) {
+            //
+            //     var height = calculateMeshHeight( displayable[country][display]);
+            //     height = (displayable[country].attacks[attackType][display] / displayable[country][display]) * height;
+            //
+            //     mesh = createMesh(coefx*displayable[country].longitude, coefy*displayable[country].latitude + (length+height/2)*Math.sin(Math.PI / 4), (length+height/2)*Math.sin(Math.PI / 4), attackType, height, displayable[country].grouped);
+            //
+            //     length+=height;
+            //     var info = {};
+            //     info.country = country;
+            //     info[display] = displayable[country].attacks[attackType][display];
+            //     info.attack_type = attackType;
+            //     info.grouped = displayable[country].grouped;
+            //     info.total_fatalities = displayable[country][display];
+            //     mesh.userData = info;
+            //     group.add(mesh);
+            // }
         }
 
         scene.add(group);
@@ -606,6 +601,35 @@
             selectedObject.material.emissive.setHex(selectedColor);
         }
     );
+
+    // $("#info-icon").click( function()
+    //     {
+    //         var window =  document.getElementById("info-window");
+    //         var detail =  document.getElementById("info-detail");
+    //
+    //         if (window.style.display === "none") {
+    //             detail.innerHTML = "Objects Height: "+text.display+"<br>Object width: Number of attacks in area<br><div class='foo' style='background:"+text.Bombing+"'><span style='padding-left: 30px'>Bombing</span></div>";
+    //             detail.innerHTML +="<div class='foo' style='background:"+text.Armed_Assault+"'><span style='padding-left: 30px'>Armed_assault</span></div>";
+    //             detail.innerHTML +="<div class='foo' style='background:"+text.Assasination+"'><span style='padding-left: 30px'>Assasination</span></div>";
+    //             detail.innerHTML +="<div class='foo' style='background:"+text.Hostage_Taking+"'><span style='padding-left: 30px'>Hostage_taking</span></div>";
+    //             detail.innerHTML +="<div class='foo' style='background:"+text.Infrastructure_Attack+"'><span style='padding-left: 30px'>Infrastructure</span></div>";
+    //             detail.innerHTML +="<div class='foo' style='background:"+text.Other+"'><span style='padding-left: 30px'>Other</span></div>";
+    //             window.style.display = "block";
+    //         } else {
+    //
+    //             window.style.display = "none";
+    //         }
+    //     }
+    // );
+    //
+    // $("#info-close").click( function()
+    //     {
+    //         var window =  document.getElementById("info-window");
+    //         window.style.display = "none";
+    //     }
+    // );
+
+
 
     function onWindowResize(){
 
