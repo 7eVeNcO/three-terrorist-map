@@ -4,9 +4,12 @@
 	var dataset;
 	var webglEl = document.getElementById('webgl');
     var webglDetail = document.getElementById('detail');
+
 	var selectedObject;
     var selectedColor;
     var display = "fatalities";
+
+    var detailedCamera = false;
 
 	if (!Detector.webgl) {
 		Detector.addGetWebGLMessage(webglEl);
@@ -50,6 +53,8 @@
     var controls = initControls();
 
     document.addEventListener( 'dblclick', onDocumentMouseDown, false );
+    document.addEventListener( 'mousemove', onDocumentMouseOver, false );
+
     window.addEventListener( 'resize', onWindowResize, false );
 
 
@@ -85,6 +90,18 @@
 
         rendererDetail.clear();
         rendererDetail.render(sceneDetail, cameraDetail);
+
+        if(detailedCamera){
+            if(camera.position.z > 400){
+                detailedCamera = false;
+                displayData();
+            }
+        } else{
+            if(camera.position.z < 300){
+                detailedCamera = true;
+                displayData();
+            }
+        }
 	}
 
     /**
@@ -100,9 +117,7 @@
 	    var shift = 25;
 	    var detailLimits = calculateDetailYears();
 
-	    console.log(detailLimits);
-
-        metrics = calculateDetailMetrics( selectedObject.userData.country, detailLimits);
+        metrics = calculateDetailMetrics( selectedObject.userData.city, detailLimits);
 
 
         for(i=detailLimits.start; i<=detailLimits.end; i++) {
@@ -113,6 +128,7 @@
                 var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
             else
                 var material = new THREE.MeshBasicMaterial( {color: 0xff0000} );
+
             var cube = new THREE.Mesh( geometry, material );
             cube.position.x = (0 - detailWidth/2) + shift;
             cube.position.y = (0 - detailHeight/2) + 20 + heightDetail/2;
@@ -120,7 +136,7 @@
             groupDetail.add( cube );
 
             var spritey = makeTextSprite(i);
-            spritey.position.set(cube.position.x+35,cube.position.y-heightDetail/2-30,0);
+            spritey.position.set(cube.position.x + 35, cube.position.y - heightDetail / 2 - 30, 0);
             groupDetail.add(spritey);
 
         }
@@ -129,26 +145,54 @@
         $("#infobox").show();
     }
 
+    /**
+     * Displays information in detail header
+     */
     function showDetailHeader(){
 	    var header = "";
 
+	    // City detail
         if(selectedObject.userData.city != undefined)
             header = ("City: "+selectedObject.userData.city+"<br>" +
                 "Country: "+selectedObject.userData.country+"<br>" +
-                text.display+": "+Math.round(selectedObject.userData[display])+"<br>" +
-                "Total "+text.display+": "+Math.round(selectedObject.userData.total_fatalities)+"<br>" +
-                "Attack Type: "+selectedObject.userData.attack_type +"<br>" +
-                "Number of attacks: "+selectedObject.userData.grouped);
-        else
-            header = ("Country: "+selectedObject.userData.country+"<br>"+"Total "+text.display+": "+Math.round(selectedObject.userData.total_fatalities)+"<br>" + text.display+": "+Math.round(selectedObject.userData[display])+"<br>Attack Type: "+selectedObject.userData.attack_type +"<br>Number of attacks: "+selectedObject.userData.grouped);
-
+                "All "+text.display+": "+Math.round(selectedObject.userData.total_fatalities)+"<br>" +
+                "Number of all attacks: "+selectedObject.userData.grouped +"<br>" +
+                ""+selectedObject.userData.attack_type +" "+text.display+": "+Math.round(selectedObject.userData[display])+"<br><br>" +
+                "All "+text.display+" graph:"
+               );
+        //Country detail
+        else{
+            header = ("Country: "+selectedObject.userData.country+"<br>" +
+                "All "+text.display+": "+Math.round(selectedObject.userData.total_fatalities)+"<br>" +
+                "Number of all attacks: "+selectedObject.userData.grouped +"<br>"+
+                selectedObject.userData.attack_type +" "+ text.display+": "+Math.round(selectedObject.userData[display])+"<br><br>" +
+                "All "+text.display+" graph:"
+                );
+        }
 
         document.getElementById("detail-top").innerHTML = header;
+
+        if(detailedCamera)
+            document.getElementById("detail-head").innerText = "City attacks detail";
+        else
+            document.getElementById("detail-head").innerText = "Country attacks detail";
+
     }
 
-    function calculateDetailMetrics(country, detailLimits) {
+    /**
+     * Calculates height of bars for detail graph
+     * @param object
+     * @param detailLimits
+     * @returns {{}}
+     */
+    function calculateDetailMetrics(object, detailLimits) {
 	    var metrics = {};
 	    metrics.max = 0;
+
+	    var displayedObject = 'country';
+	    if(detailedCamera){
+            displayedObject = 'city';
+        }
 
 	    //Init array
 	    for(i=detailLimits.start; i<=detailLimits.end; i++){
@@ -157,7 +201,7 @@
 
         //Calculate values for each year
         for (i = 0; i < dataset.length; i++) {
-            if(dataset[i].country==country && (dataset[i].year>=detailLimits.start && dataset[i].year<=detailLimits.end)) {
+            if(dataset[i][displayedObject]==object && (dataset[i].year>=detailLimits.start && dataset[i].year<=detailLimits.end)) {
                 metrics[dataset[i].year]+=parseInt(dataset[i].fatalities);
 
             }
@@ -244,6 +288,10 @@
             width = 5;
         }
 
+        if(detailedCamera){
+            width/=2;
+        }
+
         var mesh = new THREE.Mesh( new THREE.CylinderGeometry(width, width, height, 100),
         new THREE.MeshStandardMaterial( {}));
         mesh.position.y = posY;
@@ -266,65 +314,117 @@
         return height;
     }
 
-    function displayData(){
-        displayDataByCountryGrouped(Math.round(text.year));
-        // displayDataByCity(year);
+    function displayData() {
+        if(!detailedCamera) {
+	        displayDataByCountry(Math.round(text.year));
+        }
+        else {
+            displayDataByCity(Math.round(text.year));
+        }
     }
 
     function displayDataByCity(year){
 
         scene.remove(group);
         group = null;
-        group = new THREE.Group();
-
         group = new THREE.Object3D();
+
         var displayable = {};
 
         for (i = 0; i < dataset.length; i++) {
-            if(dataset[i].year==year){
+            var record = dataset[i];
 
-                if( displayable[dataset[i].city+"-"+dataset[i].attack_type] === undefined ) {
+            if((record.year==year) && (getVisibility(record.attack_type))){
+
+                //Zaznam o meste neexistuje
+                if( displayable[dataset[i].city] === undefined ) {
                     var Object = {};
-                    Object["city"] = dataset[i].city;
+                    var ObjectIn = {};
+
                     Object["latitude"] = dataset[i].latitude;
                     Object["longitude"] = dataset[i].longitude;
-                    Object["attack_type"] = dataset[i].attack_type;
-                    Object["fatalities"] = dataset[i].fatalities;
                     Object["country"] = dataset[i].country;
+                    Object["city"] = dataset[i].city;
                     Object["grouped"] = 1;
-                    displayable[dataset[i].city+"-"+dataset[i].attack_type] = Object;
+                    Object["attack_types"] = 1;
+
+                    Object[display] = getDisplayValue(record);
+
+                    Object["attacks"] = {};
+                    Object.attacks[dataset[i].attack_type] = {};
+
+                    ObjectIn[display] = getDisplayValue(record);
+                    ObjectIn.grouped = 1;
+                    Object.attacks[dataset[i].attack_type] = ObjectIn;
+
+
+                    displayable[dataset[i].city] = Object;
                 }
+                //Zaznam o meste existuje
                 else{
-                    displayable[dataset[i].city+"-"+dataset[i].attack_type].fatalities = parseInt(displayable[dataset[i].city+"-"+dataset[i].attack_type].fatalities) + parseInt(dataset[i].fatalities);
-                    displayable[dataset[i].city+"-"+dataset[i].attack_type].grouped = parseInt(displayable[dataset[i].city+"-"+dataset[i].attack_type].grouped) + 1;
+                    displayable[record.city].grouped+= 1;
+                    displayable[record.city][display]+= getDisplayValue(record);
+
+                    //Typ utoku sa este nevyskytol
+                    if(displayable[dataset[i].city].attacks[dataset[i].attack_type] == undefined) {
+
+                        displayable[dataset[i].city].attack_types+= 1;
+                        displayable[dataset[i].city].attacks[dataset[i].attack_type] = {};
+                        displayable[dataset[i].city].attacks[dataset[i].attack_type][display] = getDisplayValue(record);
+                        displayable[dataset[i].city].attacks[dataset[i].attack_type].grouped = 1;
+                    }
+                    else{
+                        displayable[dataset[i].city].attacks[dataset[i].attack_type][display] += getDisplayValue(record);
+                        displayable[dataset[i].city].attacks[dataset[i].attack_type].grouped +=  1;
+                    }
                 }
             }
         }
 
         console.log(displayable);
 
-        for (var key in displayable){
-            var height = calculateMeshHeight(displayable[key].fatalities);
+        /**
+         * Zobraz objekty
+         */
 
-            mesh = createMesh(coefx*displayable[key].longitude, coefy*displayable[key].latitude, 20, displayable[key].attack_type, height,  displayable[key].grouped);
-            var info = {};
-            info.city = displayable[key].city;
-            info.country = displayable[key].country;
-            info.fatalities = displayable[key].fatalities;
-            info.attack_type = displayable[key].attack_type;
-            mesh.userData = info;
-            group.add(mesh);
+        for (var city in displayable) {
+            var length = 0;
+
+            var attackTypes = ["Bombing/Explosion", "Armed Assault", "Assassination", "Hostage Taking (Kidnapping)", "Infrastructure", "Facility/Infrastructure Attack", "Other"];
+
+
+            for (var i=0; i<attackTypes.length; i++) {
+
+                var attackType = attackTypes[i];
+
+                if(displayable[city].attacks[attackType]!= undefined){
+
+                    var height = calculateMeshHeight( displayable[city][display]);
+                    height = (displayable[city].attacks[attackType][display] / displayable[city][display]) * height;
+
+                    mesh = createMesh(coefx*displayable[city].longitude, coefy*displayable[city].latitude + (length+height/2)*Math.sin(Math.PI / 4), (length+height/2)*Math.sin(Math.PI / 4), attackType, height, displayable[city].grouped);
+
+                    length+=height;
+                    var info = {};
+                    info.city = city;
+                    info.country = displayable[city].country;
+                    info[display] = displayable[city].attacks[attackType][display];
+                    info.attack_type = attackType;
+                    info.grouped = displayable[city].grouped;
+                    info.total_fatalities = displayable[city][display];
+                    mesh.userData = info;
+                    group.add(mesh);
+                }
+            }
         }
 
         scene.add(group);
     }
 
-    function displayDataByCountryGrouped(year) {
-
+    function displayDataByCountry(year) {
         scene.remove(group);
         group = null;
         group = new THREE.Object3D();
-
 
         /**
          * Vyvor objekty na zobrazenie
@@ -417,34 +517,18 @@
                     group.add(mesh);
                 }
             }
-
-
-
-            // for (var attackType in displayable[country].attacks) {
-            //
-            //     var height = calculateMeshHeight( displayable[country][display]);
-            //     height = (displayable[country].attacks[attackType][display] / displayable[country][display]) * height;
-            //
-            //     mesh = createMesh(coefx*displayable[country].longitude, coefy*displayable[country].latitude + (length+height/2)*Math.sin(Math.PI / 4), (length+height/2)*Math.sin(Math.PI / 4), attackType, height, displayable[country].grouped);
-            //
-            //     length+=height;
-            //     var info = {};
-            //     info.country = country;
-            //     info[display] = displayable[country].attacks[attackType][display];
-            //     info.attack_type = attackType;
-            //     info.grouped = displayable[country].grouped;
-            //     info.total_fatalities = displayable[country][display];
-            //     mesh.userData = info;
-            //     group.add(mesh);
-            // }
         }
 
         scene.add(group);
     }
 
+    /**
+     * Returns Value for selected display
+     * @param record
+     * @returns {number}
+     */
     function getDisplayValue(record) {
         if(display != "affected"){
-            console.log(record);
             return parseInt(record[display]);
         } else {
             return (parseInt(record.fatalities) +  parseInt(record.injuries));
@@ -489,7 +573,7 @@
 	function loadCsv(year){
         $.ajax({
             type: "GET",
-            url: "dataset_known.csv",
+            url: "dataset_succ_other.csv",
             dataType: "text",
             success: function(data) {
                 dataset = $.csv.toObjects(data);
@@ -547,7 +631,7 @@
     }
 
     function reFilter() {
-        displayDataByCountryGrouped(Math.round(text.year));
+        displayDataByCountry(Math.round(text.year));
     }
 
 
@@ -583,6 +667,9 @@
         var intersects = raycaster.intersectObjects( group.children );
 
         if(intersects.length > 0) {
+            //Deselect previously selected object
+            if(selectedObject!=null)
+                selectedObject.material.emissive.setHex(selectedColor);
 
             var intersection = intersects[0];
             selectedObject = intersection.object;
@@ -595,41 +682,46 @@
          }
     }
 
+    function onDocumentMouseOver( e )
+    {
+        var mouseVector = new THREE.Vector3();
+        var raycaster = new THREE.Raycaster();
+
+        e.preventDefault();
+        mouseVector.x = 2 * (e.clientX / width) - 1;
+        mouseVector.y = 1 - 2 * ( e.clientY / height );
+        raycaster.setFromCamera(mouseVector, camera);
+
+        var intersects = raycaster.intersectObjects( group.children );
+
+        if(intersects.length > 0) {
+            //Deselect previously selected object
+            if(selectedObject!=null)
+                selectedObject.material.emissive.setHex(selectedColor);
+
+            var intersection = intersects[0];
+            selectedObject = intersection.object;
+
+            if(detailedCamera)
+                document.getElementById("object-info").innerHTML = selectedObject.userData.city;
+            else
+                document.getElementById("object-info").innerHTML = selectedObject.userData.country;
+        }
+    }
+
+    function onDocumentScroll(e){
+        alert("lolo");
+        console.log("scroll");
+    }
+
+
+    //Detail close on close click
     $("#close").click( function()
         {
             $("#infobox").hide();
             selectedObject.material.emissive.setHex(selectedColor);
         }
     );
-
-    // $("#info-icon").click( function()
-    //     {
-    //         var window =  document.getElementById("info-window");
-    //         var detail =  document.getElementById("info-detail");
-    //
-    //         if (window.style.display === "none") {
-    //             detail.innerHTML = "Objects Height: "+text.display+"<br>Object width: Number of attacks in area<br><div class='foo' style='background:"+text.Bombing+"'><span style='padding-left: 30px'>Bombing</span></div>";
-    //             detail.innerHTML +="<div class='foo' style='background:"+text.Armed_Assault+"'><span style='padding-left: 30px'>Armed_assault</span></div>";
-    //             detail.innerHTML +="<div class='foo' style='background:"+text.Assasination+"'><span style='padding-left: 30px'>Assasination</span></div>";
-    //             detail.innerHTML +="<div class='foo' style='background:"+text.Hostage_Taking+"'><span style='padding-left: 30px'>Hostage_taking</span></div>";
-    //             detail.innerHTML +="<div class='foo' style='background:"+text.Infrastructure_Attack+"'><span style='padding-left: 30px'>Infrastructure</span></div>";
-    //             detail.innerHTML +="<div class='foo' style='background:"+text.Other+"'><span style='padding-left: 30px'>Other</span></div>";
-    //             window.style.display = "block";
-    //         } else {
-    //
-    //             window.style.display = "none";
-    //         }
-    //     }
-    // );
-    //
-    // $("#info-close").click( function()
-    //     {
-    //         var window =  document.getElementById("info-window");
-    //         window.style.display = "none";
-    //     }
-    // );
-
-
 
     function onWindowResize(){
 
@@ -696,61 +788,6 @@
 
             displayData();
         });
-    }
-
-    //Unused:
-    function displayDataByCountry(year){
-
-        scene.remove(group);
-        group = null;
-        group = new THREE.Object3D();
-
-        /**
-         * Vyvor objekty na zobrazenie
-         */
-        var displayable = {};
-
-        for (i = 0; i < dataset.length; i++) {
-            if(dataset[i].year==year){
-
-                if( displayable[dataset[i].country+"-"+dataset[i].attack_type] === undefined ) {
-                    var Object = {};
-                    // Object["city"] = dataset[i].city;
-                    Object["latitude"] = dataset[i].latitude;
-                    Object["longitude"] = dataset[i].longitude;
-                    Object["attack_type"] = dataset[i].attack_type;
-                    Object["fatalities"] = parseInt(dataset[i].fatalities);
-                    Object["country"] = dataset[i].country;
-                    Object["grouped"] = 1;
-                    displayable[dataset[i].country+"-"+dataset[i].attack_type] = Object;
-                }
-                else{
-                    displayable[dataset[i].country+"-"+dataset[i].attack_type].fatalities += parseInt(dataset[i].fatalities);
-                    displayable[dataset[i].country+"-"+dataset[i].attack_type].grouped +=  1;
-                }
-            }
-        }
-
-        console.log(displayable);
-
-        /**
-         * Zobraz objekty
-         */
-
-        for (var key in displayable) {
-            var height = calculateMeshHeight(displayable[key].fatalities);
-
-            mesh = createMesh(coefx*displayable[key].longitude, coefy*displayable[key].latitude, 20, displayable[key].attack_type, height,  displayable[key].grouped);
-            var info = {};
-            info.country = displayable[key].country;
-            info.fatalities = displayable[key].fatalities;
-            info.attack_type = displayable[key].attack_type;
-            info.grouped = displayable[key].grouped;
-            mesh.userData = info;
-            group.add(mesh);
-        }
-
-        scene.add(group);
     }
 
 }());
