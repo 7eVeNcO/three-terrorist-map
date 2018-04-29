@@ -30,8 +30,8 @@
 	var renderer = new THREE.WebGLRenderer();
 	renderer.setSize(width, height);
 
+	//Add lights to Scene
     scene.add(new THREE.AmbientLight(0xffffff));
-
     var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.6 );
     directionalLight.position.y = -50;
     directionalLight.position.z = 50;
@@ -102,6 +102,14 @@
                 displayData();
             }
         }
+        // if(camera.position.x < -376 * (1000/camera.position.z)){
+        //     camera.position.x = -376 * (1000/camera.position.z);
+        // }
+        // if(camera.position.x >  376 * (1000/camera.position.z))
+        //     camera.position.x =  376 * (1000/camera.position.z);
+
+        //TODO Delete
+        // document.getElementById("object-info").innerHTML = camera.position.x+", "+camera.position.y+", "+camera.position.z;
 	}
 
     /**
@@ -117,7 +125,10 @@
 	    var shift = 25;
 	    var detailLimits = calculateDetailYears();
 
-        metrics = calculateDetailMetrics( selectedObject.userData.city, detailLimits);
+	    if(detailedCamera)
+            metrics = calculateDetailMetrics( selectedObject.userData.city, detailLimits);
+	    else
+            metrics = calculateDetailMetrics( selectedObject.userData.country, detailLimits);
 
 
         for(i=detailLimits.start; i<=detailLimits.end; i++) {
@@ -140,6 +151,10 @@
             groupDetail.add(spritey);
 
         }
+
+        spritey = makeTextSprite(metrics.max);
+        spritey.position.set(-detailWidth*0.38, 50, 0);
+        groupDetail.add(spritey);
 
         sceneDetail.add(groupDetail);
         $("#infobox").show();
@@ -390,7 +405,7 @@
         for (var city in displayable) {
             var length = 0;
 
-            var attackTypes = ["Bombing/Explosion", "Armed Assault", "Assassination", "Hostage Taking (Kidnapping)", "Infrastructure", "Facility/Infrastructure Attack", "Other"];
+            var attackTypes = ["Other", "Facility/Infrastructure Attack", "Hostage Taking (Kidnapping)", "Assassination", "Armed Assault", "Bombing/Explosion"];
 
 
             for (var i=0; i<attackTypes.length; i++) {
@@ -491,8 +506,7 @@
         for (var country in displayable) {
             var length = 0;
 
-            var attackTypes = ["Bombing/Explosion", "Armed Assault", "Assassination", "Hostage Taking (Kidnapping)", "Infrastructure", "Facility/Infrastructure Attack", "Other"];
-
+            var attackTypes = ["Other", "Facility/Infrastructure Attack", "Hostage Taking (Kidnapping)", "Assassination", "Armed Assault", "Bombing/Explosion"];
 
             for (var i=0; i<attackTypes.length; i++) {
 
@@ -535,31 +549,14 @@
         }
     }
 
-    function displayAllData(year){
-
-        scene.remove(group);
-        group = null;
-        group = new THREE.Group();
-
-
-        for (i = 0; i < dataset.length; i++) {
-            if(dataset[i].year==year){
-                mesh = createMesh(coefx*dataset[i].longitude, coefy*dataset[i].latitude, dataset[i].attack_type, dataset[i].fatalities, 1);
-                group.add(mesh);
-            }
-        }
-
-        console.log(displayable);
-        scene.add(group);
-    }
-
     function initControls(){
         var controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.panningMode = THREE.ScreenSpacePanning; // default is THREE.ScreenSpacePanning
         controls.minDistance = 100;
         controls.maxDistance = 1000;
-        // controls.enableRotate = false;
 
+        //Disabled Rotation
+        controls.enableRotate = false;
         controls.minPolarAngle = Math.PI/4; // radians
         controls.maxPolarAngle = Math.PI*3/4; // radians
 
@@ -696,24 +693,18 @@
 
         if(intersects.length > 0) {
             //Deselect previously selected object
-            if(selectedObject!=null)
-                selectedObject.material.emissive.setHex(selectedColor);
+            // if(selectedObject!=null)
+            //     selectedObject.material.emissive.setHex(selectedColor);+
 
             var intersection = intersects[0];
-            selectedObject = intersection.object;
+            var mouseOverObject = intersection.object;
 
             if(detailedCamera)
-                document.getElementById("object-info").innerHTML = selectedObject.userData.city;
+                document.getElementById("object-info").innerHTML = mouseOverObject.userData.city;
             else
-                document.getElementById("object-info").innerHTML = selectedObject.userData.country;
+                document.getElementById("object-info").innerHTML = mouseOverObject.userData.country;
         }
     }
-
-    function onDocumentScroll(e){
-        alert("lolo");
-        console.log("scroll");
-    }
-
 
     //Detail close on close click
     $("#close").click( function()
@@ -731,7 +722,7 @@
         renderer.setSize( window.innerWidth, window.innerHeight );
     }
 
-    function setControllers(){
+    function setControllers() {
         colorBomb.onFinishChange(function(value) {
             reColor();
         });
@@ -784,7 +775,7 @@
                 display = "affected";
             }
 
-            console.log(display);
+            // console.log(display);
 
             displayData();
         });

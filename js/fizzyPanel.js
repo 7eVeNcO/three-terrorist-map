@@ -23,7 +23,7 @@ var visualMapping = gui.addFolder("Visual mapping");
 var filters = gui.addFolder("Filter");
 
 var meshHeight = visualMapping.add( text, 'display', [ "Fatalities", "Injured", "Fatalities + Injured" ] ).name('Height representation');
-var meshWidth = visualMapping.add( text, 'width').name('Width');
+var meshWidth = visualMapping.add( text, 'width').name('Width').domElement.style.pointerEvents = "none";
 
 var colorBomb = visualMapping.addColor(text, 'Bombing').name('Bombing');
 var colorAA = visualMapping.addColor(text, 'Armed_Assault').name('Armed Assault');
