@@ -1,3 +1,3 @@
-Skús niečo zplagiovať a pred komisiou ťa zničím.
+Vizualizácia teroristických útokov od roku 1970 po rok 2015.
 
-7eVeN.
+Pouzity dataset: https://www.kaggle.com/karthikziffer/global-terrorism
